@@ -2,14 +2,6 @@ import sys
 import csv
 
 
-'''
-    In version 2, handle:
-    1. Error reading and writing the csv file.
-    2. Handle PermissionError while both reading and writing the csv file.
-    3. Validate that fields name, house are present in the input file.
-'''
-
-
 def main():
 
     # Handle invalid command-line arguments.
@@ -46,6 +38,8 @@ def get_file(cli_input):
         return open(cli_input)
     except FileNotFoundError:
         sys.exit("File does not exist")
+    except PermissionError:
+        sys.exit("Can't open file, Permission Denied")
 
 
 def create_new_file(ofile):
@@ -59,8 +53,16 @@ def create_new_file(ofile):
 
         # Split first and last name.
         name = row["name"].split(',')
+
+        if len(name) != 2:
+            sys.exit("Aborting write operation: Invalid Name Format")
+
         # Remove the leading space from the first name.
         name[1] = name[1].lstrip()
+
+        # Ensure all the fields exist in before.csv
+        if not name[0] or not name[1] or not row["house"]:
+            sys.exit("Aborting write operation: Column value missing")
 
         # Add person to people.
         person = {
@@ -73,13 +75,17 @@ def create_new_file(ofile):
         people.append(person)
 
     # Writing to a new file.
-    with open(sys.argv[2], "w") as new_file:
-        writer = csv.DictWriter(new_file, fieldnames=["first", "last", "house"])
-        # Write the column headings.
-        writer.writeheader()
+    try:
+        new_file = open(sys.argv[2], "w")
+    except PermissionError:
+        sys.exit("Can't open file to write, Permission Denied!")
 
-        for p in people:
-            writer.writerow({"first": p["first"], "last": p["last"], "house": p["house"]})
+    writer = csv.DictWriter(new_file, fieldnames=["First", "Last", "House"])
+    # Write the column headings.
+    writer.writeheader()
+
+    for p in people:
+        writer.writerow({"First": p["first"], "Last": p["last"], "House": p["house"]})
 
 
 if __name__ == "__main__":
